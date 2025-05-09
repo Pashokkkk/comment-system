@@ -21,3 +21,9 @@ class UserCommentSerializer(serializers.ModelSerializer):
     def validate_text(self, value):
         allowed_tags = ['a', 'code', 'i', 'strong']
         return bleach.clean(value, tags=allowed_tags, strip=True)
+    
+    def validate_captcha_text(self, value):
+        if value != "1234":
+            raise serializers.ValidationError("Невірна CAPTCHA.")
+        return value
+
