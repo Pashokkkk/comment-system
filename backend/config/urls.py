@@ -16,9 +16,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.views.generic import TemplateView
+from django.views.decorators.cache import never_cache
+from comments.views import UserCommentListCreateAPIView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('comments.urls')),  # add new path to comments API
+    path('api/', include('comments.urls')),  
+    path('api/comments/', UserCommentListCreateAPIView.as_view()),
+    path('', never_cache(TemplateView.as_view(template_name='index.html'))),
 ]
 

@@ -6,3 +6,4 @@ bleach
 celery
 redis
 django-cors-headers
+whitenoise
