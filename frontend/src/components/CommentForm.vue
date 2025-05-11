@@ -28,7 +28,7 @@
       <label>Enter CAPTCHA:</label>
       <img :src="captchaImageUrl" alt="captcha" />
       <button type="button" @click="refreshCaptcha">🔁 Refresh</button>
-      <input v-model="captchaText" required />
+      <input v-model="form.captcha_text" required />
     </div>
 
     <div>
@@ -54,100 +54,107 @@
   </form>
 </template>
 
-<script>
-export default {
-  data() {
-    return {
-      form: {
-        username: '',
-        email: '',
-        homepage_url: '',
-        text: '',
-        captcha_text: '',
-        captcha_key: '',
-        file: null
-      },
-      captchaImageUrl: '',
-      previewVisible: false,
-      successMessage: '',
-      errorMessage: ''
-    };
+<script setup>
+import { ref, reactive, onMounted } from 'vue'
+
+const form = reactive({
+  username: '',
+  email: '',
+  homepage_url: '',
+  text: '',
+  captcha_text: '',
+  captcha_key: '',
+  file: null
+})
+
+const captchaImageUrl = ref('')
+const previewVisible = ref(false)
+const successMessage = ref('')
+const errorMessage = ref('')
+
+onMounted(() => {
+  console.log("🚀 CommentForm mounted")
+  refreshCaptcha()
+})
+
+async function refreshCaptcha() {
+  try {
+    const res = await fetch("http://localhost:8000/api/captcha/refresh/")
+    const data = await res.json()
+    form.captcha_key = data.key
+    captchaImageUrl.value = "http://localhost:8000" + data.image_url
+    form.captcha_text = ''
+  } catch (error) {
+    console.error("❌ Failed to refresh CAPTCHA", error)
   }
-  mounted() {
-    this.refreshCaptcha();
-  },
-  methods: {
-    async refreshCaptcha() {
-      try {
-        const res = await fetch("http://localhost:8000/api/captcha/refresh/");
-        const data = await res.json();
-        this.form.captcha_key = data.key;
-        this.captchaImageUrl = data.image_url;
-        this.form.captcha_text = '';
-      } catch (error) {
-        console.error("❌ Failed to refresh CAPTCHA", error);
-      }
-    },
-    handleFile(event) {
-      this.form.file = event.target.files[0];
-    },
-    insertTag(tag) {
-      this.form.text += `<${tag}></${tag}>`;
-    },
-    insertLink() {
-      this.form.text += `<a href='https://'>link</a>`;
-    },
-    async handleSubmit() {
-      if (!this.form.username || !this.form.email || !this.form.text || !this.form.captcha_text) {
-        this.errorMessage = "⚠️ Please fill in all required fields!";
-        return;
-      }
+}
 
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(this.form.email)) {
-        this.errorMessage = "⚠️ Please enter a valid email address!";
-        return;
-      }
+function handleFile(event) {
+  console.log("✅ handleFile triggered")
+  form.file = event.target.files[0]
+  console.log("📦 Selected file:", form.file)
+}
 
-      const formData = new FormData();
-      for (const key in this.form) {
-        if (this.form[key]) {
-          formData.append(key, this.form[key]);
-        }
-      }
+function insertTag(tag) {
+  form.text += `<${tag}></${tag}>`
+}
 
-      try {
-        const response = await fetch("http://localhost:8000/api/comments/", {
-          method: "POST",
-          body: formData
-        });
+function insertLink() {
+  form.text += `<a href='https://'>link</a>`
+}
 
-        if (!response.ok) {
-          const err = await response.json();
-          throw new Error(err?.captcha_text?.[0] || "Failed to submit");
-        }
+async function handleSubmit() {
+  if (!form.username || !form.email || !form.text || !form.captcha_text) {
+    errorMessage.value = "⚠️ Please fill in all required fields!"
+    return
+  }
 
-        this.successMessage = "✅ Comment submitted!";
-        this.errorMessage = "";
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(form.email)) {
+    errorMessage.value = "⚠️ Please enter a valid email address!"
+    return
+  }
 
-        this.form = {
-          username: '',
-          email: '',
-          homepage_url: '',
-          text: '',
-          captcha_text: '',
-          captcha_key: '',
-          file: null
-        };
-
-        this.refreshCaptcha();
-      } catch (error) {
-        this.successMessage = "";
-        this.errorMessage = "❌ Submission failed: " + error.message;
+  const formData = new FormData()
+  Object.entries(form).forEach(([key, value]) => {
+    if (value) {
+      if (key === 'file') {
+        formData.append('file_upload', value)
+      } else {
+        formData.append(key, value)
       }
     }
+  })
+
+  try {
+    const response = await fetch("http://localhost:8000/api/comments/", {
+      method: "POST",
+      body: formData
+    })
+
+    if (!response.ok) {
+      const err = await response.json()
+      throw new Error(err?.captcha_text?.[0] || err?.text?.[0] || "Failed to submit")
+    }
+
+    successMessage.value = "✅ Comment submitted!"
+    errorMessage.value = ""
+
+    // Reset form
+    form.username = ''
+    form.email = ''
+    form.homepage_url = ''
+    form.text = ''
+    form.captcha_text = ''
+    form.captcha_key = ''
+    form.file = null
+
+    refreshCaptcha()
+  } catch (error) {
+    successMessage.value = ''
+    errorMessage.value = "❌ Submission failed: " + error.message
   }
-};
+}
 </script>
 
 <style>
