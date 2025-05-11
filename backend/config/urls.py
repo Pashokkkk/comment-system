@@ -24,6 +24,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('comments.urls')),  
     path('api/comments/', UserCommentListCreateAPIView.as_view()),
+    path('captcha/', include('captcha.urls')),
     path('', never_cache(TemplateView.as_view(template_name='index.html'))),
 ]
 

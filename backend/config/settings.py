@@ -39,10 +39,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # uor apps
+    # your apps
     'rest_framework',
     'comments',
     'corsheaders',
+    'captcha',
 ]
 
 MIDDLEWARE = [

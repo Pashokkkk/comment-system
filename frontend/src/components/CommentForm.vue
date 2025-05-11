@@ -22,28 +22,33 @@
       </div>
       <textarea v-model="form.text" required></textarea>
     </div>
+
+    <!-- CAPTCHA -->
     <div>
-      <label>Captcha:</label>
-      <div>
-        <label>Enter CAPTCHA:</label>
-        <div style="font-weight: bold; font-size: 20px; letter-spacing: 3px;">{{ generatedCaptcha }}</div>
-      </div>
-      <input v-model="form.captcha_text" required />
+      <label>Enter CAPTCHA:</label>
+      <img :src="captchaImageUrl" alt="captcha" />
+      <button type="button" @click="refreshCaptcha">🔁 Refresh</button>
+      <input v-model="captchaText" required />
     </div>
+
     <div>
       <label>Upload File (optional):</label>
       <input type="file" @change="handleFile" accept=".jpg,.jpeg,.png,.txt,.md" />
     </div>
-    
+
     <button type="button" @click="previewVisible = !previewVisible">
-        {{ previewVisible ? 'Hide Preview' : 'Show Preview' }}
+      {{ previewVisible ? 'Hide Preview' : 'Show Preview' }}
     </button>
 
     <div v-if="previewVisible" style="border: 1px solid #ccc; padding: 10px; margin-top: 10px;">
-        <h4>Preview:</h4>
-        <p><strong>{{ form.username }}</strong> ({{ form.email }})</p>
-        <p v-html="form.text"></p>
+      <h4>Preview:</h4>
+      <p><strong>{{ form.username }}</strong> ({{ form.email }})</p>
+      <p v-html="form.text"></p>
     </div>
+
+    <!-- NOTIFICATIONS -->
+    <div v-if="successMessage" class="success">{{ successMessage }}</div>
+    <div v-if="errorMessage" class="error">{{ errorMessage }}</div>
 
     <button type="submit">Submit</button>
   </form>
@@ -59,80 +64,107 @@ export default {
         homepage_url: '',
         text: '',
         captcha_text: '',
+        captcha_key: '',
         file: null
       },
-      generatedCaptcha: '',
-      previewVisible: false
+      captchaImageUrl: '',
+      previewVisible: false,
+      successMessage: '',
+      errorMessage: ''
     };
-  },
+  }
   mounted() {
-    this.generateCaptcha(); 
+    this.refreshCaptcha();
   },
   methods: {
-    generateCaptcha() {
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-        this.generatedCaptcha = Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    async refreshCaptcha() {
+      try {
+        const res = await fetch("http://localhost:8000/api/captcha/refresh/");
+        const data = await res.json();
+        this.form.captcha_key = data.key;
+        this.captchaImageUrl = data.image_url;
+        this.form.captcha_text = '';
+      } catch (error) {
+        console.error("❌ Failed to refresh CAPTCHA", error);
+      }
     },
-
     handleFile(event) {
       this.form.file = event.target.files[0];
     },
-
     insertTag(tag) {
-        this.form.text += `<${tag}></${tag}>`;
+      this.form.text += `<${tag}></${tag}>`;
     },
-    
     insertLink() {
-        this.form.text += `<a href='https://'>link</a>`;
+      this.form.text += `<a href='https://'>link</a>`;
     },
-
     async handleSubmit() {
-    if (!this.form.username || !this.form.email || !this.form.text || !this.form.captcha_text) {
-        alert("⚠️ Please fill in all required fields!");
+      if (!this.form.username || !this.form.email || !this.form.text || !this.form.captcha_text) {
+        this.errorMessage = "⚠️ Please fill in all required fields!";
         return;
-    }
+      }
 
-    if (this.form.captcha_text !== this.generatedCaptcha) {
-        alert("⚠️ Incorrect CAPTCHA. Try again.");
-        this.generateCaptcha();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(this.form.email)) {
+        this.errorMessage = "⚠️ Please enter a valid email address!";
         return;
-    }
+      }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(this.form.email)) {
-        alert("⚠️ Please enter a valid email address!");
-        return;
-    }
-
-    const formData = new FormData();
-    for (const key in this.form) {
+      const formData = new FormData();
+      for (const key in this.form) {
         if (this.form[key]) {
-            formData.append(key, this.form[key]);
+          formData.append(key, this.form[key]);
         }
-    }
+      }
 
-    try {
+      try {
         const response = await fetch("http://localhost:8000/api/comments/", {
-        method: "POST",
-        body: formData
+          method: "POST",
+          body: formData
         });
 
-        if (!response.ok) throw new Error("Failed to submit");
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err?.captcha_text?.[0] || "Failed to submit");
+        }
 
-        alert("✅ Comment submitted!");
+        this.successMessage = "✅ Comment submitted!";
+        this.errorMessage = "";
+
         this.form = {
-        username: '',
-        email: '',
-        homepage_url: '',
-        text: '',
-        captcha_text: '',
-        file: null
+          username: '',
+          email: '',
+          homepage_url: '',
+          text: '',
+          captcha_text: '',
+          captcha_key: '',
+          file: null
         };
-    } catch (error) {
-        alert("❌ Submission failed: " + error.message);
-    }
-    }
 
+        this.refreshCaptcha();
+      } catch (error) {
+        this.successMessage = "";
+        this.errorMessage = "❌ Submission failed: " + error.message;
+      }
+    }
   }
 };
 </script>
+
+<style>
+.success {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #c3e6cb;
+  border-radius: 5px;
+}
+.error {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #f5c6cb;
+  border-radius: 5px;
+}
+</style>
