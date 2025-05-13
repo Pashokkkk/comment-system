@@ -8,3 +8,9 @@ redis
 django-cors-headers
 whitenoise
 django-simple-captcha
+django-cors-headers
+djangorestframework-simplejwt
+django-filter>=21.1
+channels
+daphne
+channels_redis
