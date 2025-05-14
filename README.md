@@ -16,6 +16,17 @@ cd comment_system
 ```bash
 docker-compose up --build
 ```
+створив суперкористувача, виконай:
+docker exec -it django-app python manage.py createsuperuser
+
+Виконай в контейнері Django такі дві команди:
+docker exec -it django-app python manage.py makemigrations
+docker exec -it django-app python manage.py migrate
+
+
+Перейди в frontend/ і виконай:
+npm install
+npm run dev
 
 This will:
 
