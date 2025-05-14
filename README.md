@@ -8,7 +8,7 @@ A full-featured comment system with nested replies, JWT authentication, CAPTCHA,
 
 ```bash
 git clone https://github.com/Pashokkkk/comment-system.git
-cd comment_system
+cd comment-system
 ```
 
 ## ✅ 2. Start the project
@@ -16,17 +16,26 @@ cd comment_system
 ```bash
 docker-compose up --build
 ```
-створив суперкористувача, виконай:
-docker exec -it django-app python manage.py createsuperuser
 
-Виконай в контейнері Django такі дві команди:
+## Create a superuser if necessary
+
+```bash
+docker exec -it django-app python manage.py createsuperuser
+```
+
+## Run the following two commands in the Django container:
+
+```bash
 docker exec -it django-app python manage.py makemigrations
 docker exec -it django-app python manage.py migrate
+```
 
+## Go to frontend/ and execute:
 
-Перейди в frontend/ і виконай:
+```bash
 npm install
 npm run dev
+```
 
 This will:
 
