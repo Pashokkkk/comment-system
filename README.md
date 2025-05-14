@@ -38,7 +38,6 @@ npm run dev
 ```
 
 This will:
-
 - build Docker images (Django + Vue)
 - start backend at http://localhost:8000
 - serve frontend SPA at http://localhost:5173/static/
