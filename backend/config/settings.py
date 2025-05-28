@@ -186,3 +186,7 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://comment-sys-test.onrender.com',
+]
